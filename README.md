@@ -9,6 +9,26 @@ Your robot has been kidnapped and transported to a new location! Luckily it has 
 
 In this project you will implement a 2 dimensional particle filter in C++. Your particle filter will be given a map and some initial localization information (analogous to what a GPS would provide). At each time step your filter will also get observation and control data.
 
+## Background
+One of the important modules in a self driving vehicle is the localization module. Localization is estimating the location of the vehicle with high accuracy (3-10 cm) in reference to a global map.
+
+One way to localize a vehicle is by using data from Global Positioning System (GPS). But GPS doesn't provide high accuracy data. In the best case the accuracy of GPS is 1-3 m. In cases where GPS signal is weak, the accuracy drops to 50-100 m.
+
+To achieve an accuracy of 3-10 cm, sensor information from liadar, radar, or INU is used and fused together using a Particle Filter.
+
+## Localization Algorithm
+Localization in case of self driving vehicle makes use of GPS, range sensors, landmark information and a global map based on the following algorithm given below:
+
+1. A global map of different areas is constructed, in which the self driving vehicle is to be deployed. This map contains information about different location of 'landmarks'. Landmarks are nothing but major features present in the locality, which are not subject to change for a longer period of time. Examples can be buildings, signal posts, intersections, etc. These landmarks are used in later steps to predict the relative location of car. These maps are updated often so as to add new features and refresh the locations of existing features.
+
+2. Once a map is constructed, GPS sensor installed inside the vehicle is used to predict the locality in which it is present. On basis of this locality, only a portion of global map is selected to avoid a large number of real time calculations as the algorithms must run in real time. As stated earlier, GPS sensor provides noisy measurement and hence cannot be used alone for localization.
+
+3. LIDAR and/or RADAR sensor installed on the vehicle then measure the distance between it and the landmarks around it. This helps in further pinning down location of the vehicle as it is now relative to landmarks in the global map constructed earlier. However, LIDAR and RADAR information is also not accurate and prone to noise. Hence, a sophisticated technique like Particle Filter is used.
+
+4. Particle Filter is used to combine the information gained from all above steps and predict the location of car with high accuracy of 3-10 cm.
+
+The whole algorithm repeats at run time when the car is moving and new location of car is predicted.
+
 ## Running the Code
 This project involves the Term 2 Simulator which can be downloaded [here](https://github.com/udacity/self-driving-car-sim/releases)
 
