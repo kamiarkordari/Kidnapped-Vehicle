@@ -20,6 +20,7 @@
 
 using std::string;
 using std::vector;
+using std::normal_distribution;
 
 void ParticleFilter::init(double x, double y, double theta, double std[]) {
   /**
@@ -32,9 +33,9 @@ void ParticleFilter::init(double x, double y, double theta, double std[]) {
    */
   num_particles = 100;  // TODO: Set the number of particles
 
-  std::normal_distribution<double> N_x(x, std[0]);
-  std::normal_distribution<double> N_y(y, std[1]);
-  std::normal_distribution<double> N_theta(theta, std[2]);
+  normal_distribution<double> N_x(x, std[0]);
+  normal_distribution<double> N_y(y, std[1]);
+  normal_distribution<double> N_theta(theta, std[2]);
 
   for (int i = 0; i < num_particles; i++)
   {
@@ -124,6 +125,79 @@ void ParticleFilter::updateWeights(double sensor_range, double std_landmark[],
    *   and the following is a good resource for the actual equation to implement
    *   (look at equation 3.33) http://planning.cs.uiuc.edu/node99.html
    */
+
+   double weight_normalizer = 0.0;
+
+   for (int i = 0; i < num_particles; i++)
+   {
+     double particle_x = particles[i].x;
+     double particle_y = particles[i].y;
+     double particle_theta = particles[i].theta;
+
+     // transformation observatios from vehicle to map coordinates
+     vector<LandmarkObs> transformed_observations;
+
+     for (int j = 0; j < observations.size(); j++)
+     {
+       LandmarkObs transformed_obs;
+       obs = observations[j];
+
+       transformed_obs.x = particle_x + (cos(particle_theta) * obs.x) - (sin(particle_theta) * obs.y);
+       transformed_obs.y = particle_y + (sin(particle_theta) * obs.x) + (cos(particle_theta) * obs.y);
+       transformed_observations.push_back(transformed_obs);
+     }
+
+
+     // Pick landmarks based on proximity
+     vector<LandmarkObs> nearny_landmarks;
+     for (int j = 0; j < map_landmarks.landmark_list.size(); j++)
+     {
+       Map::single_landmark_s current_landmark = map_landmarks.landmark_list[j];
+       dist_x = particle_x - current_landmark.landmark_x_f;
+       dist_y = particle_y - current_landmark.landmark_y_f;
+       if sqrt((dist_x * dist_x) + (dist_y * dist_y)) <= sensor_range {
+         nearny_landmarks.push_back(LandmarkObs {current_landmark, current_landmark.x_f, current_landmark.y_f});
+       }
+     }
+
+     dataAssociation(nearny_landmarks, transformed_observations, sensor_range);
+
+     particles[i].weight = 1.0;
+
+     // Calculate weight
+     double sigma_x = std_landmark[0];
+     double sigma_y = std_landmark[1];
+     double sigma_x_2 = sigma_x * sigma_x;
+     double sigma_y_2 = sigma_y * sigma_y;
+     double normalizer = 1.0 / (2 * M_PI * sigma_x * sigma_y);
+
+     for (int j = 0; j < transformed_observations.size(); j++){
+       double trans_obs_x = transformed_observations[j].x;
+       double trans_obs_y = transformed_observations[j].y;
+       double trans_obs_id = transformed_observations[i].id;
+
+       double multi_prob = 1.0;
+
+       for (int l = 0; l < nearny_landmarks.size(); l++){
+         double pred_landmark_x = nearny_landmarks[l].x;
+         double pred_landmark_y = nearny_landmarks[l].y;
+         double pred_landmark_id = nearny_landmarks[l].id;
+
+         if (trans_obs_id == pred_landmark_id){
+           multi_prob = normalizer * exp(-1.0 * ((pow((trans_obs_x - pred_landmark_x), 2)/(2.0 * sigma_x_2)) + (pow((trans_obs_y - pred_landmark_y), 2)/(2.0 * sigma_y_2))));
+           particles[i].weight *= multi_prob;
+         }
+       }
+     }
+     weight_normalizer = particles[i].weight;
+   }
+
+   // Normalize weight_sum
+   for (int i = 0; i < particles.size(); i++){
+     particles[i].weight /= weight_normalizer;
+     weights[i] = particles[i].weight;
+   }
+
 
 }
 
