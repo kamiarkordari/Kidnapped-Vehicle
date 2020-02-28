@@ -36,10 +36,11 @@ void ParticleFilter::init(double x, double y, double theta, double std[]) {
   normal_distribution<double> N_x(x, std[0]);
   normal_distribution<double> N_y(y, std[1]);
   normal_distribution<double> N_theta(theta, std[2]);
+  std::default_random_engine gen;
 
   for (int i = 0; i < num_particles; i++)
   {
-    particle particle;
+    Particle particle;
     particle.id = i;
     particle.x = N_x(gen);
     particle.y = N_y(gen);
@@ -65,7 +66,7 @@ void ParticleFilter::prediction(double delta_t, double std_pos[],
    *  http://www.cplusplus.com/reference/random/default_random_engine/
    */
 
-   default_random_engine gen;
+   std::default_random_engine gen;
 
    for (int i = 0; i < num_particles; i++)
    {
@@ -107,7 +108,7 @@ void ParticleFilter::dataAssociation(vector<LandmarkObs> predicted,
    *   during the updateWeights phase.
    */
 
-   for (int i = 0; i < observatios.size(); i++){
+   for (int i = 0; i < observations.size(); i++){
 
      double min_dist = std::numeric_limits<float>::max();
 
@@ -152,7 +153,7 @@ void ParticleFilter::updateWeights(double sensor_range, double std_landmark[],
      for (int j = 0; j < observations.size(); j++)
      {
        LandmarkObs transformed_obs;
-       obs = observations[j];
+       LandmarkObs obs = observations[j];
 
        transformed_obs.x = particle_x + (cos(particle_theta) * obs.x) - (sin(particle_theta) * obs.y);
        transformed_obs.y = particle_y + (sin(particle_theta) * obs.x) + (cos(particle_theta) * obs.y);
@@ -162,17 +163,17 @@ void ParticleFilter::updateWeights(double sensor_range, double std_landmark[],
 
      // Pick landmarks based on proximity
      vector<LandmarkObs> nearny_landmarks;
-     for (int j = 0; j < map_landmarks.landmark_list.size(); j++)
+     for (const auto& landmark: map_landmarks.landmark_list)
      {
-       Map::single_landmark_s current_landmark = map_landmarks.landmark_list[j];
-       dist_x = particle_x - current_landmark.landmark_x_f;
-       dist_y = particle_y - current_landmark.landmark_y_f;
-       if sqrt((dist_x * dist_x) + (dist_y * dist_y)) <= sensor_range {
-         nearny_landmarks.push_back(LandmarkObs {current_landmark.id_i, current_landmark.x_f, current_landmark.y_f});
-       }
+       double dist_x = particle_x - landmark.x_f;
+       double dist_y = particle_y - landmark.y_f;
+       if (sqrt((dist_x * dist_x) + (dist_y * dist_y)) <= sensor_range) {
+         LandmarkObs nearby_landmark = {landmark.id_i, landmark.x_f, landmark.y_f};
+         nearny_landmarks.push_back(nearby_landmark);
+       };
      }
 
-     dataAssociation(nearny_landmarks, transformed_observations, sensor_range);
+     dataAssociation(nearny_landmarks, transformed_observations);
 
      particles[i].weight = 1.0;
 
@@ -220,14 +221,14 @@ void ParticleFilter::resample() {
    * NOTE: You may find std::discrete_distribution helpful here.
    *   http://en.cppreference.com/w/cpp/numeric/random/discrete_distribution
    */
-   default_random_engine gen;
-   discrete_distribution<int> distribution(weights.begine(), weights.end());
+   std::default_random_engine gen;
+   std::discrete_distribution<int> distribution(weights.begin(), weights.end());
 
    vector<Particle> resample_particles;
 
    for (int i = 0; i < num_particles; i++)
    {
-     resmaple_particles.push_back(particles[distribution(gen)]);
+     resample_particles.push_back(particles[distribution(gen)]);
    }
 
    particles = resample_particles;
