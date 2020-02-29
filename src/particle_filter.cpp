@@ -1,8 +1,8 @@
 /**
  * particle_filter.cpp
  *
- * Created on: Dec 12, 2016
- * Author: Tiffany Huang
+ * Created on: Feb 29, 2020
+ * Author: Kamiar Kordari
  */
 
 #include "particle_filter.h"
