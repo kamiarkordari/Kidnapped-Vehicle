@@ -97,122 +97,92 @@ void ParticleFilter::prediction(double delta_t, double std_pos[],
    }
 }
 
-void ParticleFilter::dataAssociation(vector<LandmarkObs> predicted,
-                                     vector<LandmarkObs>& observations) {
-  /**
-   * TODO: Find the predicted measurement that is closest to each
-   *   observed measurement and assign the observed measurement to this
-   *   particular landmark.
-   * NOTE: this method will NOT be called by the grading code. But you will
-   *   probably find it useful to implement this method and use it as a helper
-   *   during the updateWeights phase.
-   */
-
-   for (int i = 0; i < observations.size(); i++){
-
-     double min_dist = std::numeric_limits<float>::max();
-
-     for (int j = 0; j < predicted.size(); j++){
-       double distance = dist(predicted[j].x, predicted[j].x, observations[i].x, observations[i].y);
-       if (distance < min_dist){
-         min_dist = distance;
-         observations[i].id = predicted[j].id;
-       }
-     }
-   }
-}
 
 void ParticleFilter::updateWeights(double sensor_range, double std_landmark[],
                                    const vector<LandmarkObs> &observations,
                                    const Map &map_landmarks) {
   /**
-   * TODO: Update the weights of each particle using a mult-variate Gaussian
-   *   distribution. You can read more about this distribution here:
-   *   https://en.wikipedia.org/wiki/Multivariate_normal_distribution
-   * NOTE: The observations are given in the VEHICLE'S coordinate system.
-   *   Your particles are located according to the MAP'S coordinate system.
-   *   You will need to transform between the two systems. Keep in mind that
-   *   this transformation requires both rotation AND translation (but no scaling).
-   *   The following is a good resource for the theory:
-   *   https://www.willamette.edu/~gorr/classes/GeneralGraphics/Transforms/transforms2d.htm
-   *   and the following is a good resource for the actual equation to implement
-   *   (look at equation 3.33) http://planning.cs.uiuc.edu/node99.html
+   * Update weights of particles
    */
 
-   double weight_normalizer = 0.0;
+   LandmarkObs converted_obs;
+   LandmarkObs best_landmark;
 
-   for (int i = 0; i < num_particles; i++)
-   {
-     double particle_x = particles[i].x;
-     double particle_y = particles[i].y;
-     double particle_theta = particles[i].theta;
+   weights.clear();
 
-     // transformation observatios from vehicle to map coordinates
-     vector<LandmarkObs> transformed_observations;
+   for (int i = 0; i < int(particles.size()); i++) {
+     double prob = 1.;
 
-     for (int j = 0; j < observations.size(); j++)
-     {
-       LandmarkObs transformed_obs;
-       LandmarkObs obs = observations[j];
+     for (int k = 0; k < int(observations.size()); k++) {
+       //  Convert observation to map coordinate
+       converted_obs = transformCoords(particles[i], observations[k]);
 
-       transformed_obs.x = particle_x + (cos(particle_theta) * obs.x) - (sin(particle_theta) * obs.y);
-       transformed_obs.y = particle_y + (sin(particle_theta) * obs.x) + (cos(particle_theta) * obs.y);
-       transformed_observations.push_back(transformed_obs);
+       //  Associate observation to a landmark
+       best_landmark = dataAssociation(converted_obs, map_landmarks, std_landmark);
+
+       //  Calculate weight
+       double w = calculateWeights(converted_obs, best_landmark, std_landmark);
+
+       //  Get final weight by multiplying all the probabilities
+       prob *= w;
      }
 
-
-     // Pick landmarks based on proximity
-     vector<LandmarkObs> nearny_landmarks;
-     for (const auto& landmark: map_landmarks.landmark_list)
-     {
-       double dist_x = particle_x - landmark.x_f;
-       double dist_y = particle_y - landmark.y_f;
-       if (sqrt((dist_x * dist_x) + (dist_y * dist_y)) <= sensor_range) {
-         LandmarkObs nearby_landmark = {landmark.id_i, landmark.x_f, landmark.y_f};
-         nearny_landmarks.push_back(nearby_landmark);
-       };
-     }
-
-     dataAssociation(nearny_landmarks, transformed_observations);
-
-     particles[i].weight = 1.0;
-
-     // Calculate weight
-     double sigma_x = std_landmark[0];
-     double sigma_y = std_landmark[1];
-     double sigma_x_2 = sigma_x * sigma_x;
-     double sigma_y_2 = sigma_y * sigma_y;
-     double normalizer = 1.0 / (2 * M_PI * sigma_x * sigma_y);
-
-     for (int j = 0; j < transformed_observations.size(); j++){
-       double trans_obs_x = transformed_observations[j].x;
-       double trans_obs_y = transformed_observations[j].y;
-       double trans_obs_id = transformed_observations[i].id;
-
-       double multi_prob = 1.0;
-
-       for (int l = 0; l < nearny_landmarks.size(); l++){
-         double pred_landmark_x = nearny_landmarks[l].x;
-         double pred_landmark_y = nearny_landmarks[l].y;
-         double pred_landmark_id = nearny_landmarks[l].id;
-
-         if (trans_obs_id == pred_landmark_id){
-           multi_prob = normalizer * exp(-1.0 * ((pow((trans_obs_x - pred_landmark_x), 2)/(2.0 * sigma_x_2)) + (pow((trans_obs_y - pred_landmark_y), 2)/(2.0 * sigma_y_2))));
-           particles[i].weight *= multi_prob;
-         }
-       }
-     }
-     weight_normalizer = particles[i].weight;
-   }
-
-   // Normalize weight_sum
-   for (int i = 0; i < particles.size(); i++){
-     particles[i].weight /= weight_normalizer;
-     weights[i] = particles[i].weight;
-   }
-
-
+     particles[i].weight = prob;
+     weights.push_back(prob);
+  }
 }
+
+
+LandmarkObs ParticleFilter::transformCoords(Particle p, LandmarkObs obs) {
+  /**
+   * Convert coordinates from particle to map
+   */
+  LandmarkObs transformed_coords;
+
+  transformed_coords.id = obs.id;
+  transformed_coords.x = obs.x * cos(p.theta) - obs.y * sin(p.theta) + p.x;
+  transformed_coords.y = obs.x * sin(p.theta) + obs.y * cos(p.theta) + p.y;
+
+  return transformed_coords;
+}
+
+
+LandmarkObs ParticleFilter::dataAssociation(LandmarkObs converted_obs, Map map_landmarks, double std_landmark[]) {
+  LandmarkObs best_landmark;
+
+  for (int i = 0; i < int(map_landmarks.landmark_list.size()); i++) {
+
+    double min_dist = std::numeric_limits<float>::max();
+    double distance = dist(converted_obs.x, converted_obs.y, map_landmarks.landmark_list[i].x_f, map_landmarks.landmark_list[i].y_f);
+
+    if (distance < min_dist) {
+      min_dist = distance;
+      best_landmark.id = map_landmarks.landmark_list[i].id_i;
+      best_landmark.x = map_landmarks.landmark_list[i].x_f;
+      best_landmark.y = map_landmarks.landmark_list[i].y_f;
+    }
+  }
+
+  return best_landmark;
+}
+
+
+// Calculates the error between the estimated position and the ground truth position of the landmark
+double ParticleFilter::calculateWeights(LandmarkObs obs, LandmarkObs best_landmark, double std_landmark[]) {
+
+  double gauss_norm = 1 / (2 * M_PI * sig_x * sig_y);
+  double sigma_x = std_landmark[0];
+  double sigma_y = std_landmark[1];
+
+  double exponent = (pow(obs.x - best_landmark.x, 2) / (2 * pow(sigma_x, 2)))
+                 + (pow(obs.y - best_landmark.y, 2) / (2 * pow(sigma_y, 2)));
+
+  double weight = gauss_norm * exp(-exponent);
+
+  return weight;
+}
+
+
 
 void ParticleFilter::resample() {
   /**

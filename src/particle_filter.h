@@ -58,15 +58,6 @@ class ParticleFilter {
                   double yaw_rate);
 
   /**
-   * dataAssociation Finds which observations correspond to which landmarks
-   *   (likely by using a nearest-neighbors data association).
-   * @param predicted Vector of predicted landmark observations
-   * @param observations Vector of landmark observations
-   */
-  void dataAssociation(std::vector<LandmarkObs> predicted,
-                       std::vector<LandmarkObs>& observations);
-
-  /**
    * updateWeights Updates the weights for each particle based on the likelihood
    *   of the observed measurements.
    * @param sensor_range Range [m] of sensor
@@ -84,6 +75,34 @@ class ParticleFilter {
    *   the new set of particles.
    */
   void resample();
+
+  /**
+   * transformCoords transforms the coordinates from the particle axis to the map axis.
+   * @param part particle
+   * @param obs landmark observation in reference to the particle
+   */
+  LandmarkObs transformCoords(Particle part, LandmarkObs obs);
+
+
+  /**
+   * associateLandmark uses a naive nearest neighbor algorithm to find the closest map landmark
+   *   to a given observation point.
+   * @param converted_obs landmark observation in map coordinates
+   * @param map_landmarks map structure containing all known landmarks
+   * @param std_landmark noise array with uncertainties in measures on x and y
+   */
+  LandmarkObs dataAssociation(LandmarkObs converted_obs, Map map_landmarks, double std_landmark[]);
+
+
+  /**
+   * calculateWeights uses a Multivariate-Gaussian Probability to assess the likelihood
+   *  of an observation matching a map landmark.
+   * @param obs landmark observation in map coordinates
+   * @param best_landmark best estimate of what landmark corresponds to the observed measurement
+   * @param std_landmark noise array with uncertainties in measures on x and y
+   */
+  double calculateWeights(LandmarkObs obs, LandmarkObs best_landmark, double std_landmark[]);
+
 
   /**
    * Set a particles list of associations, along with the associations'
