@@ -24,12 +24,10 @@ using std::normal_distribution;
 
 void ParticleFilter::init(double x, double y, double theta, double std[]) {
   /**
-   * TODO: Set the number of particles. Initialize all particles to
+   * Set the number of particles. Initialize all particles to
    *   first position (based on estimates of x, y, theta and their uncertainties
    *   from GPS) and all weights to 1.
-   * TODO: Add random Gaussian noise to each particle.
-   * NOTE: Consult particle_filter.h for more information about this method
-   *   (and others in this file).
+   * Add random Gaussian noise to each particle.
    */
   num_particles = 100;  // TODO: Set the number of particles
 
@@ -59,11 +57,7 @@ void ParticleFilter::init(double x, double y, double theta, double std[]) {
 void ParticleFilter::prediction(double delta_t, double std_pos[],
                                 double velocity, double yaw_rate) {
   /**
-   * TODO: Add measurements to each particle and add random Gaussian noise.
-   * NOTE: When adding noise you may find std::normal_distribution
-   *   and std::default_random_engine useful.
-   *  http://en.cppreference.com/w/cpp/numeric/random/normal_distribution
-   *  http://www.cplusplus.com/reference/random/default_random_engine/
+   * Add measurements to each particle and add random Gaussian noise.
    */
 
    std::default_random_engine gen;
@@ -167,8 +161,10 @@ LandmarkObs ParticleFilter::dataAssociation(LandmarkObs converted_obs, Map map_l
 }
 
 
-// Calculates the error between the estimated position and the ground truth position of the landmark
 double ParticleFilter::calculateWeights(LandmarkObs obs, LandmarkObs best_landmark, double std_landmark[]) {
+  /**
+   * Calculates the error between the estimated position and the ground truth position of the landmark
+   */
 
   double gauss_norm = 1 / (2 * M_PI * sig_x * sig_y);
   double sigma_x = std_landmark[0];
@@ -186,10 +182,7 @@ double ParticleFilter::calculateWeights(LandmarkObs obs, LandmarkObs best_landma
 
 void ParticleFilter::resample() {
   /**
-   * TODO: Resample particles with replacement with probability proportional
-   *   to their weight.
-   * NOTE: You may find std::discrete_distribution helpful here.
-   *   http://en.cppreference.com/w/cpp/numeric/random/discrete_distribution
+   * Resample particles with replacement with probability proportional to their weight.
    */
    std::default_random_engine gen;
    std::discrete_distribution<int> distribution(weights.begin(), weights.end());

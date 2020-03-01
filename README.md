@@ -1,13 +1,9 @@
-# Overview
-This repository contains all the code needed to complete the final project for the Localization course in Udacity's Self-Driving Car Nanodegree.
+Implementing a 2 dimensional particle filter to localize a self-driving car using a map, GPS, lidar, and radar measurements.
 
-#### Submission
-All you will need to submit is your `src` directory. You should probably do a `git pull` before submitting to verify that your project passes the most up-to-date version of the grading code (there are some parameters in `src/main.cpp` which govern the requirements on accuracy and run time).
+## Overview
+Our robot (autonomous vehicle) has been kidnapped and transported to a new location! Luckily it has a map of this location, a (noisy) GPS estimate of its initial location, and lots of (noisy) sensor and control data.
 
-## Project Introduction
-Your robot has been kidnapped and transported to a new location! Luckily it has a map of this location, a (noisy) GPS estimate of its initial location, and lots of (noisy) sensor and control data.
-
-In this project you will implement a 2 dimensional particle filter in C++. Your particle filter will be given a map and some initial localization information (analogous to what a GPS would provide). At each time step your filter will also get observation and control data.
+In this project we will implement a 2 dimensional particle filter in C++. Particle filter will be given a map and some initial localization information (analogous to what a GPS would provide). At each time step the filter will also get observation and control data.
 
 ## Background
 One of the important modules in a self driving vehicle is the localization module. Localization is estimating the location of the vehicle with high accuracy (3-10 cm) in reference to a global map.
@@ -17,20 +13,33 @@ One way to localize a vehicle is by using data from Global Positioning System (G
 To achieve an accuracy of 3-10 cm, sensor information from liadar, radar, or INU is used and fused together using a Particle Filter.
 
 ## Localization Algorithm
-Localization in case of self driving vehicle makes use of GPS, range sensors, landmark information and a global map based on the following algorithm given below:
+Localization in context of self driving vehicle makes use of GPS, range sensors, landmark information and a global map based on the following algorithm:
 
-1. A global map of different areas is constructed, in which the self driving vehicle is to be deployed. This map contains information about different location of 'landmarks'. Landmarks are nothing but major features present in the locality, which are not subject to change for a longer period of time. Examples can be buildings, signal posts, intersections, etc. These landmarks are used in later steps to predict the relative location of car. These maps are updated often so as to add new features and refresh the locations of existing features.
+1. A global map of different areas is constructed, in which the self driving vehicle is to be deployed. This map contains information about different location of 'landmarks'. Landmarks are features that are not subject to change for a long period of time. These landmarks are used to estimate the relative location of car to them.
 
-2. Once a map is constructed, GPS sensor installed inside the vehicle is used to predict the locality in which it is present. On basis of this locality, only a portion of global map is selected to avoid a large number of real time calculations as the algorithms must run in real time. As stated earlier, GPS sensor provides noisy measurement and hence cannot be used alone for localization.
+2. Once a map is constructed, GPS on the vehicle is used to initialize the vehicle and select a small portion of global map around the vehicle to significantly reduce the amount of computation as the algorithms must run in real time.
 
-3. LIDAR and/or RADAR sensor installed on the vehicle then measure the distance between it and the landmarks around it. This helps in further pinning down location of the vehicle as it is now relative to landmarks in the global map constructed earlier. However, LIDAR and RADAR information is also not accurate and prone to noise. Hence, a sophisticated technique like Particle Filter is used.
+3. GPS provides noisy measurement and is not enough for accurate localization. LIDAR and/or RADAR sensor on the vehicle is used for map matching by measuring the distance between the vehicle and the map landmarks around the vehicle. This helps in further pinning down location of the vehicle as it is now relative to landmarks in the global map. However, LIDAR and RADAR information is also not accurate and prone to noise.
 
 4. Particle Filter is used to combine the information gained from all above steps and predict the location of car with high accuracy of 3-10 cm.
 
 The whole algorithm repeats at run time when the car is moving and new location of car is predicted.
 
-## Running the Code
-This project involves the Term 2 Simulator which can be downloaded [here](https://github.com/udacity/self-driving-car-sim/releases)
+## Particle Filter
+
+
+1. For each particle convert measurements to map coordinate
+
+2. For each observation find the closest landmark
+
+3. Calculate weight
+
+4. Accumulate error for particle
+
+
+## The code
+### Running the Code
+This project involves a Simulator which can be downloaded [here](https://github.com/udacity/self-driving-car-sim/releases)
 
 This repository includes two files that can be used to set up and install uWebSocketIO for either Linux or Mac systems. For windows you can use either Docker, VMware, or even Windows 10 Bash on Ubuntu to install uWebSocketIO.
 
@@ -48,11 +57,6 @@ Alternatively some scripts have been included to streamline this process, these 
 2. ./build.sh
 3. ./run.sh
 
-Tips for setting up your environment can be found [here](https://classroom.udacity.com/nanodegrees/nd013/parts/40f38239-66b6-46ec-ae68-03afd8a601c8/modules/0949fca6-b379-42af-a919-ee50aa304e6a/lessons/f758c44c-5e40-4e01-93b5-1a82aa4e044f/concepts/23d376c7-0195-4276-bdf0-e02f1f3c665d)
-
-Note that the programs that need to be written to accomplish the project are src/particle_filter.cpp, and particle_filter.h
-
-The program main.cpp has already been filled out, but feel free to modify it.
 
 Here is the main protocol that main.cpp uses for uWebSocketIO in communicating with the simulator.
 
@@ -102,13 +106,7 @@ OUTPUT: values provided by the c++ program to the simulator
 ["best_particle_sense_y"] <= list of sensed y positions
 
 
-Your job is to build out the methods in `particle_filter.cpp` until the simulator output says:
-
-```
-Success! Your particle filter passed!
-```
-
-# Implementing the Particle Filter
+### Repo Structure
 The directory structure of this repository is as follows:
 
 ```
@@ -132,27 +130,20 @@ root
     |   particle_filter.h
 ```
 
-The only file you should modify is `particle_filter.cpp` in the `src` directory. The file contains the scaffolding of a `ParticleFilter` class and some associated methods. Read through the code, the comments, and the header file `particle_filter.h` to get a sense for what this code is expected to do.
+`particle_filter.cpp` in the `src` directory contains the scaffolding of a `ParticleFilter` class and some associated methods.
 
-If you are interested, take a look at `src/main.cpp` as well. This file contains the code that will actually be running your particle filter and calling the associated methods.
+`src/main.cpp` contains the code that runs the particle filter by calling the associated methods.
 
-## Inputs to the Particle Filter
-You can find the inputs to the particle filter in the `data` directory.
+### Inputs to the Particle Filter
+Inputs to the particle filter are in the `data` directory. `map_data.txt` includes the position of landmarks (in meters) on an arbitrary Cartesian coordinate system. This Map data is provided by 3D Mapping Solutions GmbH.
 
-#### The Map*
-`map_data.txt` includes the position of landmarks (in meters) on an arbitrary Cartesian coordinate system. Each row has three columns
-1. x position
-2. y position
-3. landmark id
+All other data the simulator provides, such as observations and controls.
 
-### All other data the simulator provides, such as observations and controls.
-
-> * Map data provided by 3D Mapping Solutions GmbH.
 
 ## Success Criteria
-To check that the particle filter performance we can run ./run.sh in the terminal. If it meets the specifications, there will be a "Success! Your particle filter passed!" message.
+To check the particle filter's performance we can run ./run.sh in the terminal. If it meets the specifications, there will be a "Success! Your particle filter passed!" message.
 
-We look at two metrics:
+These are the two performance metrics:
 
 1. **Accuracy**: The particle filter should localize vehicle position and yaw to within the values specified in the parameters `max_translation_error` and `max_yaw_error` in `src/main.cpp`.
 
