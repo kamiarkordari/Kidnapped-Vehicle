@@ -10,16 +10,16 @@ One of the important modules in a self driving vehicle is the localization modul
 
 One way to localize a vehicle is by using data from Global Positioning System (GPS). But GPS doesn't provide high accuracy data. In the best case the accuracy of GPS is 1-3 m. In cases where GPS signal is weak, the accuracy drops to 50-100 m.
 
-To achieve an accuracy of 3-10 cm, sensor information from liadar, radar, or INU is used and fused together using a Particle Filter.
+To achieve an accuracy of 3-10 cm, sensor information from LIDAR and/or RADAR or INU is used by applying a Particle Filter.
 
 ## Localization Algorithm
-Localization in context of self driving vehicle makes use of GPS, range sensors, landmark information and a global map based on the following algorithm:
+Localization in context of self driving vehicle makes use of GPS, LIDAR and/or RADAR, and a map of landmarks based on the following algorithm:
 
-1. A global map of different areas is constructed, in which the self driving vehicle is to be deployed. This map contains information about different location of 'landmarks'. Landmarks are features that are not subject to change for a long period of time. These landmarks are used to estimate the relative location of car to them.
+1. A global map of landmarks is constructed for places where the self driving vehicle is to be deployed. This map contains information about different 'landmarks'. Landmarks are features that can be uniquely identified and are not subject to change for a long period of time. These landmarks are used to estimate the relative location of car to them.
 
-2. Once a map is constructed, GPS on the vehicle is used to initialize the vehicle and select a small portion of global map around the vehicle to significantly reduce the amount of computation as the algorithms must run in real time.
+2. Once a map is constructed, GPS on the vehicle is used to initialize the vehicle and select a small portion of global map around the vehicle to reduce the amount of computation as the algorithms must run in real time.
 
-3. GPS provides noisy measurement and is not enough for accurate localization. LIDAR and/or RADAR sensor on the vehicle is used for map matching by measuring the distance between the vehicle and the map landmarks around the vehicle. This helps in further pinning down location of the vehicle as it is now relative to landmarks in the global map. However, LIDAR and RADAR information is also not accurate and prone to noise.
+3. GPS provides noisy measurement and is not enough for accurate localization. LIDAR and/or RADAR sensor on the vehicle is used for map matching by measuring the distance between the vehicle and the map landmarks around the vehicle. This helps in further pinning down the location of the vehicle as it is now relative to landmarks in the global map. However, LIDAR and RADAR information is also not accurate and prone to noise.
 
 4. Particle Filter is used to combine the information gained from all above steps and predict the location of car with high accuracy of 3-10 cm.
 
@@ -27,14 +27,26 @@ The whole algorithm repeats at run time when the car is moving and new location 
 
 ## Particle Filter
 
+The flowchart below represents the steps of the particle filter algorithm as well as its inputs.
 
+![Particle Filter](images/particle_filter_flowchart.png)
+
+The steps in the algorithm flow chart are:
+1. **Initialization**: At this step we use GPS input to initial the position of particles. The subsequent steps in the process will refine this estimate to localize the vehicle with every new observation and input.
+2. **Prediction**: At this step we predict where the vehicle will be at the next time step, by updating particles based on yaw rate and velocity, while accounting for Gaussian sensor noise.
+3. **Particle weight updates**: At this step we update particle weights using map landmark positions and feature measurements.
+4. **Resampling**: At this step we generate a new set of particles by resampling using particle weights. The new set of particles represents the Bayes filter posterior probability. This gives us a refined estimate of the vehicles position based on input evidence.
+
+
+
+Update step has these four steps:
 1. For each particle convert measurements to map coordinate
 
 2. For each observation find the closest landmark
 
 3. Calculate weight
 
-4. Accumulate error for particle
+4. Accumulate weights for all the observations
 
 
 ## The code
