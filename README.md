@@ -1,7 +1,7 @@
 Implementing a 2 dimensional particle filter to localize a self-driving car using a map, GPS, lidar, and radar measurements.
 
 ## Overview
-Our robot (autonomous vehicle) has been kidnapped and transported to a new location! Luckily it has a map of this location, a (noisy) GPS estimate of its initial location, and lots of (noisy) sensor and control data.
+Our robot (an autonomous vehicle) has been kidnapped and transported to a new location! Luckily it has a map of this location, a (noisy) GPS estimate of its initial location, and lots of (noisy) sensor and control data.
 
 In this project we will implement a 2 dimensional particle filter in C++. Particle filter will be given a map and some initial localization information (analogous to what a GPS would provide). At each time step the filter will also get observation and control data.
 
@@ -38,15 +38,24 @@ The steps in the algorithm flow chart are:
 4. **Resampling**: At this step we generate a new set of particles by resampling using particle weights. The new set of particles represents the Bayes filter posterior probability. This gives us a refined estimate of the vehicles position based on input evidence.
 
 
-
 Update step has these four steps:
 1. For each particle convert measurements to map coordinate
-
 2. For each observation find the closest landmark
-
 3. Calculate weight
-
 4. Accumulate weights for all the observations
+
+#### Weight Update
+In the weight update step we need to perform observation measurement transformations, along with identifying measurement landmark associations in order to correctly calculate each particle's weight.
+
+We will first need to transform the car's measurements from its local car coordinate system to the map's coordinate system. Since we know the coordinates of the particle from the car's frame of reference we can use this information and a matrix rotation/translation to transform each observation from the car frame of reference to the map frame of reference.  
+
+Next, each measurement will need to be associated with a landmark identifier. We associate the closest landmark to each transformed observation.
+
+Finally, we will use this information to calculate the weight value of the particle.
+
+
+
+
 
 
 ## The code
