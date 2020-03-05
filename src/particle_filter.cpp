@@ -29,7 +29,7 @@ void ParticleFilter::init(double x, double y, double theta, double std[]) {
    *   from GPS) and all weights to 1.
    * Add random Gaussian noise to each particle.
    */
-  num_particles = 100;  // TODO: Set the number of particles
+  num_particles = 100;
 
   normal_distribution<double> N_x(x, std[0]);
   normal_distribution<double> N_y(y, std[1]);
@@ -62,23 +62,23 @@ void ParticleFilter::prediction(double delta_t, double std_pos[],
 
    std::default_random_engine gen;
 
+   double new_x;
+   double new_y;
+   double new_theta;
+
    for (int i = 0; i < num_particles; i++)
    {
-     double new_x;
-     double new_y;
-     double new_theta;
-
-     if (yaw_rate == 0)
+     if (fabs(yaw_rate)< 0.0001)
      {
-       new_x = particles[i].x + velocity * delta_t * cos(particles[i].theta);
-       new_y = particles[i].y + velocity * delta_t * sin(particles[i].theta);
        new_theta = particles[i].theta;
+       new_x = particles[i].x + velocity * delta_t * cos(new_theta);
+       new_y = particles[i].y + velocity * delta_t * sin(new_theta);
      }
      else
      {
-       new_x = particles[i].x + velocity / yaw_rate * (sin(particles[i].theta + yaw_rate * delta_t) - sin(particles[i].theta));
-       new_y = particles[i].y + velocity / yaw_rate * (cos(particles[i].theta) - cos(particles[i].theta  + yaw_rate * delta_t));
        new_theta = particles[i].theta + yaw_rate * delta_t;
+       new_x = particles[i].x + velocity / yaw_rate * (sin(new_theta) - sin(particles[i].theta));
+       new_y = particles[i].y + velocity / yaw_rate * (cos(particles[i].theta) - cos(new_theta));
      }
 
      normal_distribution<double> N_x(new_x, std_pos[0]);
@@ -105,11 +105,11 @@ void ParticleFilter::updateWeights(double sensor_range, double std_landmark[],
    weights.clear();
 
    for (int i = 0; i < int(particles.size()); i++) {
-     double prob = 1.;
+     double prob = 1.0;
 
-     for (int k = 0; k < int(observations.size()); k++) {
+     for (int j = 0; j < int(observations.size()); j++) {
        //  Convert observation to map coordinate
-       converted_obs = transformCoords(particles[i], observations[k]);
+       converted_obs = transformCoords(particles[i], observations[j]);
 
        //  Associate observation to a landmark
        best_landmark = dataAssociation(converted_obs, map_landmarks, std_landmark);
@@ -142,33 +142,38 @@ LandmarkObs ParticleFilter::transformCoords(Particle p, LandmarkObs obs) {
 
 
 LandmarkObs ParticleFilter::dataAssociation(LandmarkObs converted_obs, Map map_landmarks, double std_landmark[]) {
+
   LandmarkObs best_landmark;
 
   for (int i = 0; i < int(map_landmarks.landmark_list.size()); i++) {
-
-    double min_dist = std::numeric_limits<float>::max();
+    double min_dist;
     double distance = dist(converted_obs.x, converted_obs.y, map_landmarks.landmark_list[i].x_f, map_landmarks.landmark_list[i].y_f);
-
-    if (distance < min_dist) {
+    if (i == 0) {
+      min_dist = distance;
+      best_landmark.id = map_landmarks.landmark_list[i].id_i;
+      best_landmark.x = map_landmarks.landmark_list[i].x_f;
+      best_landmark.y = map_landmarks.landmark_list[i].y_f;
+    }
+    else if (distance < min_dist)
+    {
       min_dist = distance;
       best_landmark.id = map_landmarks.landmark_list[i].id_i;
       best_landmark.x = map_landmarks.landmark_list[i].x_f;
       best_landmark.y = map_landmarks.landmark_list[i].y_f;
     }
   }
-
   return best_landmark;
 }
 
 
 double ParticleFilter::calculateWeights(LandmarkObs obs, LandmarkObs best_landmark, double std_landmark[]) {
   /**
-   * Calculates the error between the estimated position and the ground truth position of the landmark
+   * Calculate the weight value of the particle
    */
 
-  double gauss_norm = 1 / (2 * M_PI * sig_x * sig_y);
   double sigma_x = std_landmark[0];
   double sigma_y = std_landmark[1];
+  double gauss_norm = 1 / (2 * M_PI * sigma_x * sigma_y);
 
   double exponent = (pow(obs.x - best_landmark.x, 2) / (2 * pow(sigma_x, 2)))
                  + (pow(obs.y - best_landmark.y, 2) / (2 * pow(sigma_y, 2)));
@@ -182,7 +187,7 @@ double ParticleFilter::calculateWeights(LandmarkObs obs, LandmarkObs best_landma
 
 void ParticleFilter::resample() {
   /**
-   * Resample particles with replacement with probability proportional to their weight.
+   * Resample particles with replacement with probability proportional to their weight
    */
    std::default_random_engine gen;
    std::discrete_distribution<int> distribution(weights.begin(), weights.end());

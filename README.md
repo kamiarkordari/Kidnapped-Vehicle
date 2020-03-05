@@ -31,18 +31,18 @@ The flowchart below represents the steps of the particle filter algorithm as wel
 
 ![Particle Filter](images/particle_filter_flowchart.png)
 
-The steps in the algorithm flow chart are:
-1. **Initialization**: At this step we use GPS input to initial the position of particles. The subsequent steps in the process will refine this estimate to localize the vehicle with every new observation and input.
+The four main steps in the algorithm are:
+1. **Initialization**: At this step we create a set of particles and initialize their locations by using the GPS measurement. I picked 1000 particles. The subsequent steps in the process will refine this estimate to localize the vehicle with every new observation and input.
 2. **Prediction**: At this step we predict where the vehicle will be at the next time step, by updating particles based on yaw rate and velocity, while accounting for Gaussian sensor noise.
 3. **Weight update**: At this step we update particle weights using map landmark positions and feature measurements.
-4. **Resampling**: At this step we generate a new set of particles by resampling using particle weights. The new set of particles represents the Bayes filter posterior probability. This gives us a refined estimate of the vehicles position based on input evidence.
+4. **Resampling**: At this step we generate a new set of particles by resampling using particle weights. Resampling is performed by randomly drawing new particles from old ones with replacement in proportion to their importance weights. The new set of particles represents the Bayes filter posterior probability. This gives us a refined estimate of the vehicles position based on input evidence.
 
 #### Weight Update
 In the weight update step we need to perform observation measurement transformations, along with identifying measurement landmark associations in order to correctly calculate each particle's weight.
 
 **Transformation:** We first need to transform the car's measurements from its local car coordinate system to the map's coordinate system. Since we know the coordinates of the particle from the car's frame of reference we can use this information and a matrix rotation/translation to transform each observation from the car frame of reference to the map frame of reference.  
 
-**Association:** Next, each measurement will need to be associated with a landmark identifier. We associate the closest landmark to each transformed observation.
+**Association:** Next, each landmark measurement will need to be associated with a landmark identifier that represents a real world object. We associate the closest landmark to each transformed observation.
 
 **Calculate Weight:** Finally, we calculate the weight value of the particle. The particles final weight will be calculated as the product of each measurement's Multivariate-Gaussian probability density. We calculate each measurement's Multivariate-Gaussian probability density using the below code:
 
@@ -58,9 +58,7 @@ double weight = gauss_norm * exp(-exponent);
 ```
 
 #### Particle Filter Implementation
-Here is a brief overview of what happens when the code runs:
-
-- `main.cpp` All the main code loops in h.onMessage(). `pf` is an instance of the `ParticleFilter` class defined in `main.cpp`. `pf` holds the particle values for the filter and it calls the methods for initialization, prediction, weight update, and resampling.
+The main code is in `main.cpp` where it loops in h.onMessage(). `pf` is an instance of the `ParticleFilter` class defined in `main.cpp`. `pf` holds the particle values for the filter and it calls the methods for initialization, prediction, weight update, and resampling.
 - The `ParticleFilter` class is defined in `particle_filter.cpp` and `particle_filter.h` and includes the following methods:
 
 ```C++
@@ -211,3 +209,15 @@ These are the two performance metrics:
 1. **Accuracy**: The particle filter should localize vehicle position and yaw to within the values specified in the parameters `max_translation_error` and `max_yaw_error` in `src/main.cpp`.
 
 2. **Performance**: The particle filter should complete execution within the time of 100 seconds.
+
+
+## Demo Explanation
+
+**Inputs:**
+- A map that contains multiple landmarks
+- One initial GPS location in the very beginning with big uncertainty
+- Noisy observation of landmarks' locations in each timestamp while vehicle is moving.
+
+**Outputs:** The blue circle (with a black arrow inside) shows the real-time estimation of the vehicle’s location and heading orientation from the particle filter.
+
+**Ground truth:** The blue car shows the ground truth (the actual position and heading orientation of the car). It is visualized for comparison purpose.
