@@ -34,24 +34,66 @@ The flowchart below represents the steps of the particle filter algorithm as wel
 The steps in the algorithm flow chart are:
 1. **Initialization**: At this step we use GPS input to initial the position of particles. The subsequent steps in the process will refine this estimate to localize the vehicle with every new observation and input.
 2. **Prediction**: At this step we predict where the vehicle will be at the next time step, by updating particles based on yaw rate and velocity, while accounting for Gaussian sensor noise.
-3. **Particle weight updates**: At this step we update particle weights using map landmark positions and feature measurements.
+3. **Weight update**: At this step we update particle weights using map landmark positions and feature measurements.
 4. **Resampling**: At this step we generate a new set of particles by resampling using particle weights. The new set of particles represents the Bayes filter posterior probability. This gives us a refined estimate of the vehicles position based on input evidence.
-
-
-Update step has these four steps:
-1. For each particle convert measurements to map coordinate
-2. For each observation find the closest landmark
-3. Calculate weight
-4. Accumulate weights for all the observations
 
 #### Weight Update
 In the weight update step we need to perform observation measurement transformations, along with identifying measurement landmark associations in order to correctly calculate each particle's weight.
 
-We will first need to transform the car's measurements from its local car coordinate system to the map's coordinate system. Since we know the coordinates of the particle from the car's frame of reference we can use this information and a matrix rotation/translation to transform each observation from the car frame of reference to the map frame of reference.  
+**Transformation:** We first need to transform the car's measurements from its local car coordinate system to the map's coordinate system. Since we know the coordinates of the particle from the car's frame of reference we can use this information and a matrix rotation/translation to transform each observation from the car frame of reference to the map frame of reference.  
 
-Next, each measurement will need to be associated with a landmark identifier. We associate the closest landmark to each transformed observation.
+**Association:** Next, each measurement will need to be associated with a landmark identifier. We associate the closest landmark to each transformed observation.
 
-Finally, we will use this information to calculate the weight value of the particle.
+**Calculate Weight:** Finally, we calculate the weight value of the particle. The particles final weight will be calculated as the product of each measurement's Multivariate-Gaussian probability density. We calculate each measurement's Multivariate-Gaussian probability density using the below code:
+
+```C++
+double gauss_norm = 1 / (2 * M_PI * sig_x * sig_y);
+double sigma_x = std_landmark[0];
+double sigma_y = std_landmark[1];
+
+double exponent = (pow(obs.x - best_landmark.x, 2) / (2 * pow(sigma_x, 2)))
+               + (pow(obs.y - best_landmark.y, 2) / (2 * pow(sigma_y, 2)));
+
+double weight = gauss_norm * exp(-exponent);
+```
+
+#### Particle Filter Implementation
+Here is a brief overview of what happens when the code runs:
+
+- `main.cpp` All the main code loops in h.onMessage(). `pf` is an instance of the `ParticleFilter` class defined in `main.cpp`. `pf` holds the particle values for the filter and it calls the methods for initialization, prediction, weight update, and resampling.
+- The `ParticleFilter` class is defined in `particle_filter.cpp` and `particle_filter.h` and includes the following methods:
+
+```C++
+void init(double x, double y, double theta, double std[]);
+```
+
+```C++
+void updateWeights(double sensor_range, double std_landmark[],
+                   const std::vector<LandmarkObs> &observations,
+                   const Map &map_landmarks);
+```
+
+```C++
+void resample();
+```
+
+```C++
+void prediction(double delta_t, double std_pos[], double velocity, double yaw_rate);
+```
+
+```C++
+LandmarkObs transformCoords(Particle part, LandmarkObs obs);
+```
+
+```C++
+LandmarkObs dataAssociation(LandmarkObs converted_obs, Map map_landmarks, double std_landmark[]);
+```
+
+```C++
+double calculateWeights(LandmarkObs obs, LandmarkObs best_landmark, double std_landmark[]);
+```
+
+
 
 
 
