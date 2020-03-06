@@ -29,22 +29,22 @@ The whole algorithm repeats at run time when the car is moving and new location 
 
 The flowchart below represents the steps of the particle filter algorithm as well as its inputs.
 
-![Particle Filter](images/particle_filter_flowchart.png)
+![Particle Filter](media/particle_filter_flowchart.png)
 
 The four main steps in the algorithm are:
-1. **Initialization**: At this step we create a set of particles and initialize their locations by using the GPS measurement. I picked 1000 particles. The subsequent steps in the process will refine this estimate to localize the vehicle with every new observation and input.
-2. **Prediction**: At this step we predict where the vehicle will be at the next time step, by updating particles based on yaw rate and velocity, while accounting for Gaussian sensor noise.
-3. **Weight update**: At this step we update particle weights using map landmark positions and feature measurements.
-4. **Resampling**: At this step we generate a new set of particles by resampling using particle weights. Resampling is performed by randomly drawing new particles from old ones with replacement in proportion to their importance weights. The new set of particles represents the Bayes filter posterior probability. This gives us a refined estimate of the vehicles position based on input evidence.
+1. **Initialization**: At this step we create a set of particles and initialize their locations by using the GPS measurement. I picked 1000 particles. The subsequent steps in the process will refine this estimate to localize the vehicle with every new observation and input. This is implemented as `init` method of the `ParticleFilter`class.
+2. **Prediction**: At this step we predict where the vehicle will be at the next time step, by updating particles based on yaw rate and velocity, while accounting for Gaussian sensor noise. This is implemented as `prediction` method of the `ParticleFilter`class.
+3. **Weight update**: At this step we update particle weights using map landmark positions and feature measurements. This is implemented as `updateWeights` method of the `ParticleFilter`class.
+4. **Resampling**: At this step we generate a new set of particles by resampling using particle weights. Resampling is performed by randomly drawing new particles from old ones with replacement in proportion to their importance weights. The new set of particles represents the Bayes filter posterior probability. This gives us a refined estimate of the vehicles position based on input evidence. This is implemented as `resample` method of the `ParticleFilter`class.
 
 #### Weight Update
 In the weight update step we need to perform observation measurement transformations, along with identifying measurement landmark associations in order to correctly calculate each particle's weight.
 
-**Transformation:** We first need to transform the car's measurements from its local car coordinate system to the map's coordinate system. Since we know the coordinates of the particle from the car's frame of reference we can use this information and a matrix rotation/translation to transform each observation from the car frame of reference to the map frame of reference.  
+**Transformation:** We first need to transform the car's measurements from its local car coordinate system to the map's coordinate system. Since we know the coordinates of the particle from the car's frame of reference we can use this information and a matrix rotation/translation to transform each observation from the car frame of reference to the map frame of reference. This is implemented as `transformedCoords` method of the `ParticleFilter`class.   
 
-**Association:** Next, each landmark measurement will need to be associated with a landmark identifier that represents a real world object. We associate the closest landmark to each transformed observation.
+**Association:** Next, each landmark measurement will need to be associated with a landmark identifier that represents a real world object. We associate the closest landmark to each transformed observation. This is implemented as `dataAssociation` method of the `ParticleFilter`class.
 
-**Calculate Weight:** Finally, we calculate the weight value of the particle. The particles final weight will be calculated as the product of each measurement's Multivariate-Gaussian probability density. We calculate each measurement's Multivariate-Gaussian probability density using the below code:
+**Calculate Weight:** Finally, we calculate the weight value of the particle. The particles final weight will be calculated as the product of each measurement's Multivariate-Gaussian probability density. This is implemented as `calculateWeights` method of the `ParticleFilter`class. We calculate each measurement's Multivariate-Gaussian probability density using the below code:
 
 ```C++
 double gauss_norm = 1 / (2 * M_PI * sig_x * sig_y);
@@ -56,47 +56,6 @@ double exponent = (pow(obs.x - best_landmark.x, 2) / (2 * pow(sigma_x, 2)))
 
 double weight = gauss_norm * exp(-exponent);
 ```
-
-#### Particle Filter Implementation
-The main code is in `main.cpp` where it loops in h.onMessage(). `pf` is an instance of the `ParticleFilter` class defined in `main.cpp`. `pf` holds the particle values for the filter and it calls the methods for initialization, prediction, weight update, and resampling.
-- The `ParticleFilter` class is defined in `particle_filter.cpp` and `particle_filter.h` and includes the following methods:
-
-```C++
-void init(double x, double y, double theta, double std[]);
-```
-
-```C++
-void updateWeights(double sensor_range, double std_landmark[],
-                   const std::vector<LandmarkObs> &observations,
-                   const Map &map_landmarks);
-```
-
-```C++
-void resample();
-```
-
-```C++
-void prediction(double delta_t, double std_pos[], double velocity, double yaw_rate);
-```
-
-```C++
-LandmarkObs transformCoords(Particle part, LandmarkObs obs);
-```
-
-```C++
-LandmarkObs dataAssociation(LandmarkObs converted_obs, Map map_landmarks, double std_landmark[]);
-```
-
-```C++
-double calculateWeights(LandmarkObs obs, LandmarkObs best_landmark, double std_landmark[]);
-```
-
-
-
-
-
-
-
 
 ## The code
 ### Running the Code
@@ -201,7 +160,14 @@ Inputs to the particle filter are in the `data` directory. `map_data.txt` includ
 All other data the simulator provides, such as observations and controls.
 
 
-## Success Criteria
+## Demo
+
+Below is a video of the a demo of this algorithm. The particle filter processes input data to calculate the real-time estimation of the vehicle’s location and heading orientation. This location is shown with a blue circle (with a black arrow inside for the heading).
+
+The blue car shows the ground truth (the actual position and heading orientation of the car). It is visualized only for comparison purpose.
+
+
+##### Success Criteria
 To check the particle filter's performance we can run ./run.sh in the terminal. If it meets the specifications, there will be a "Success! Your particle filter passed!" message.
 
 These are the two performance metrics:
@@ -211,13 +177,4 @@ These are the two performance metrics:
 2. **Performance**: The particle filter should complete execution within the time of 100 seconds.
 
 
-## Demo Explanation
-
-**Inputs:**
-- A map that contains multiple landmarks
-- One initial GPS location in the very beginning with big uncertainty
-- Noisy observation of landmarks' locations in each timestamp while vehicle is moving.
-
-**Outputs:** The blue circle (with a black arrow inside) shows the real-time estimation of the vehicle’s location and heading orientation from the particle filter.
-
-**Ground truth:** The blue car shows the ground truth (the actual position and heading orientation of the car). It is visualized for comparison purpose.
+![Particle Filter Demo](media/kidnapped_vehicle.gif)
