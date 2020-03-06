@@ -1,5 +1,7 @@
 Implementing a 2 dimensional particle filter to localize a self-driving car using a map, GPS, lidar, and radar measurements.
 
+![Particle Filter Demo](media/kidnapped_vehicle.gif)
+
 ## Overview
 Our robot (an autonomous vehicle) has been kidnapped and transported to a new location! Luckily it has a map of this location, a (noisy) GPS estimate of its initial location, and lots of (noisy) sensor and control data.
 
