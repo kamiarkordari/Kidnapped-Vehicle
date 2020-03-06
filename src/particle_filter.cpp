@@ -142,6 +142,9 @@ LandmarkObs ParticleFilter::transformCoords(Particle p, LandmarkObs obs) {
 
 
 LandmarkObs ParticleFilter::dataAssociation(LandmarkObs converted_obs, Map map_landmarks, double std_landmark[]) {
+  /**
+   * Associate measurement with a landmark
+   */
 
   LandmarkObs best_landmark;
 
